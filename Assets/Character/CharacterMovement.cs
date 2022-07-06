@@ -19,6 +19,7 @@ public class CharacterMovement : MonoBehaviour
     bool movementPressed;
     bool runPressed;
     bool jumpPressed;
+    
 
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
@@ -43,14 +44,13 @@ public class CharacterMovement : MonoBehaviour
         input.CharacterControls.Run.performed += ctx => runPressed = ctx.ReadValueAsButton();
 
         // Jump/Roll
-        input.CharacterControls.Dodge.performed += ctx => jumpPressed = ctx.ReadValueAsButton();
+        input.CharacterControls.Jump.performed += ctx => jumpPressed = ctx.ReadValueAsButton();
     }
 
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
-        // OnGUI();
 
         // set the ID references
         isWalkingHash = Animator.StringToHash("isWalking");
@@ -67,40 +67,31 @@ public class CharacterMovement : MonoBehaviour
     }
 
     void handleRotation() {
+        float AngleBetweenTwoPoints(Vector3 a, Vector3 b) {
+            return Mathf.Atan2(a.y - b.y, a.x - b.x) * Mathf.Rad2Deg;
+        }
+
         Vector3 currentPosition = transform.position;
+        if(!movementPressed) {
+            Vector2 positionOnScreen = Camera.main.WorldToViewportPoint(transform.position);
+            Vector2 mouseOnScreen = (Vector2)Camera.main.ScreenToViewportPoint(Mouse.current.position.ReadValue());
+            float angle = AngleBetweenTwoPoints(positionOnScreen, mouseOnScreen);
 
-        Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
-
-        Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
-
-        transform.LookAt(positionToLookAt);
+            transform.rotation =  Quaternion.Euler(new Vector3(0f,-angle-90,0f));
+        }
+        
+        if(movementPressed) {
+            Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
+            Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
+            transform.LookAt(positionToLookAt);
+        }
     }
-    
-     void OnGUI()
-    {
-        Vector3 point = new Vector3();
-        Event   currentEvent = Event.current;
-        Vector2 mousePos = new Vector2();
 
-        // Get the mouse position from Event.
-        // Note that the y position from Event is inverted.
-        mousePos.x = currentEvent.mousePosition.x - (cam.pixelWidth/2);
-        mousePos.y = cam.pixelHeight - currentEvent.mousePosition.y;
-
-        point = cam.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, cam.nearClipPlane));
-
-        GUILayout.BeginArea(new Rect(20, 20, 250, 120));
-        GUILayout.Label("Screen pixels: " + cam.pixelWidth + ":" + cam.pixelHeight);
-        GUILayout.Label("Mouse position: " + mousePos);
-        GUILayout.Label("World position: " + point.ToString("F3"));
-        GUILayout.Label("Mouse X: " + mousePos.x);
-        GUILayout.EndArea();
-    }
-    void handleLookRotation() {
-        Vector3 mousePos = Mouse.current.position.ReadValue();   
-        // mousePos.z = Camera.main.nearClipPlane;
-        // Vector3 Worldpos = Camera.main.ScreenToWorldPoint(mousePos);  
-    }
+    // void handleLookRotation() {
+    //     Vector3 mousePos = Mouse.current.position.ReadValue();   
+    //     // mousePos.z = Camera.main.nearClipPlane;
+    //     // Vector3 Worldpos = Camera.main.ScreenToWorldPoint(mousePos);  
+    // }
 
     void handleMovement() {
         // Get parameter values from the animator

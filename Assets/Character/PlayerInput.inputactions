@@ -24,9 +24,9 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Dodge",
+                    "name": "Jump",
                     "type": "PassThrough",
-                    "id": "e3cf7967-a701-4824-b88b-e48bd34bead3",
+                    "id": "6fae0d90-4a7a-4203-9c5a-104944fa1f06",
                     "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
@@ -102,12 +102,12 @@
                 },
                 {
                     "name": "",
-                    "id": "239e7d26-cdde-443f-a81f-6c016d66e3b9",
+                    "id": "674a7c24-676a-44bf-a262-b16d926ca92d",
                     "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Dodge",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
