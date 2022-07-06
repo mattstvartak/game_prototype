@@ -23,11 +23,10 @@ public class CharacterMovement : MonoBehaviour
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
 
-    private GameObject player;
-
     private Vector3 motion;
     private CharacterController controller;
     private Camera cam;
+    private Vector3 velocity = Vector3.zero;
 
     void Awake() {
         input = new PlayerInput();
@@ -70,17 +69,9 @@ public class CharacterMovement : MonoBehaviour
     void handleRotation() {
         Vector3 currentPosition = transform.position;
 
-        // Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
+        Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
 
-        Debug.Log(Mouse.current.position);
-
-        Vector2 mousePos = new Vector2();
-        mousePos.x = Mouse.current.position.x.ReadValue() - (cam.pixelWidth/2);
-        mousePos.y = Mouse.current.position.y.ReadValue() - (cam.pixelHeight/2);
-
-        Vector3 newPosition = new Vector3(mousePos.x, 0, mousePos.y);
-
-        Vector3 positionToLookAt = currentPosition + newPosition;
+        Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
 
         transform.LookAt(positionToLookAt);
     }
