@@ -19,20 +19,17 @@ public class CharacterMovement : MonoBehaviour
     bool movementPressed;
     bool runPressed;
     bool jumpPressed;
-    
 
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
 
     private Vector3 motion;
     private CharacterController controller;
-    private Camera cam;
     private Vector3 velocity = Vector3.zero;
 
     void Awake() {
         input = new PlayerInput();
         controller = GetComponent<CharacterController>();
-        cam = Camera.main;
 
         // Walking input
         input.CharacterControls.Movement.performed += ctx => {
@@ -42,15 +39,13 @@ public class CharacterMovement : MonoBehaviour
 
         // Run toggle
         input.CharacterControls.Run.performed += ctx => runPressed = ctx.ReadValueAsButton();
-
-        // Jump/Roll
-        input.CharacterControls.Jump.performed += ctx => jumpPressed = ctx.ReadValueAsButton();
     }
 
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
+        // OnGUI();
 
         // set the ID references
         isWalkingHash = Animator.StringToHash("isWalking");
@@ -61,39 +56,44 @@ public class CharacterMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        handleMovement();
-        handleRotation();
-        // handleLookRotation();
+        HandleMovement();
+        HandleRotation();
+        HandleLookRotation();
     }
 
-    void handleRotation() {
-        float AngleBetweenTwoPoints(Vector3 a, Vector3 b) {
-            return Mathf.Atan2(a.y - b.y, a.x - b.x) * Mathf.Rad2Deg;
-        }
-
+    void HandleRotation() {
         Vector3 currentPosition = transform.position;
-        if(!movementPressed) {
-            Vector2 positionOnScreen = Camera.main.WorldToViewportPoint(transform.position);
-            Vector2 mouseOnScreen = (Vector2)Camera.main.ScreenToViewportPoint(Mouse.current.position.ReadValue());
-            float angle = AngleBetweenTwoPoints(positionOnScreen, mouseOnScreen);
 
-            transform.rotation =  Quaternion.Euler(new Vector3(0f,-angle-90,0f));
-        }
-        
-        if(movementPressed) {
-            Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
-            Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
-            transform.LookAt(positionToLookAt);
-        }
+        Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
+
+        Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
+
+        transform.LookAt(positionToLookAt);
     }
 
-    // void handleLookRotation() {
-    //     Vector3 mousePos = Mouse.current.position.ReadValue();   
-    //     // mousePos.z = Camera.main.nearClipPlane;
-    //     // Vector3 Worldpos = Camera.main.ScreenToWorldPoint(mousePos);  
-    // }
+    Vector3 GetMouseWorldLocation() {
+        Vector2 mousePosition = Mouse.current.position.ReadValue();
+        Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+        Vector3 worldPosition;
 
-    void handleMovement() {
+
+        if(Physics.Raycast(ray, out RaycastHit hitData))
+        {
+            worldPosition = hitData.point;
+            return worldPosition;
+        }
+
+        return new Vector3(transform.position.x, transform.position.y, transform.position.z + 10);
+    }
+
+    void HandleLookRotation() {
+        Vector3 pointToLookAt = GetMouseWorldLocation();
+        pointToLookAt = new Vector3(pointToLookAt.x, transform.position.y, pointToLookAt.z);
+        pointToLookAt = Vector3.SmoothDamp(transform.position, pointToLookAt, ref velocity, 0.5f);
+        transform.LookAt(pointToLookAt);
+    }
+
+    void HandleMovement() {
         // Get parameter values from the animator
         bool isRunning = animator.GetBool(isRunningHash);
         bool isWalking = animator.GetBool(isWalkingHash);
