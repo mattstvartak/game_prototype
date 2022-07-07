@@ -57,11 +57,11 @@ public class CharacterMovement : MonoBehaviour
     void Update()
     {
         HandleMovement();
-        HandleRotation();
-        HandleLookRotation();
+        HandMovementRotation();
+        if(!movementPressed) HandleLookRotation();
     }
 
-    void HandleRotation() {
+    void HandMovementRotation() {
         Vector3 currentPosition = transform.position;
 
         Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
