@@ -23,17 +23,16 @@ public class CharacterMovement : MonoBehaviour
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
     
-    private bool isHandlingRotation;
+    private bool canSlowLook;
     private Vector2 mouseLocation;
     private Vector3 motion;
     private CharacterController controller;
-    Vector3 velocity = Vector3.zero;
+    private Vector3 velocity = Vector3.zero;
 
     void Awake()
     {
         input = new PlayerInput();
         controller = GetComponent<CharacterController>();
-        isHandlingRotation = false;
 
         // Walking input
         input.CharacterControls.Movement.performed += ctx => {
@@ -44,6 +43,8 @@ public class CharacterMovement : MonoBehaviour
         // Look input
         input.CharacterControls.Look.performed += ctx => {
             mouseLocation = ctx.ReadValue<Vector2>();
+
+            // Look at mouse when not moving
             if(!movementPressed) HandleLookRotation();
         };
 
@@ -66,29 +67,25 @@ public class CharacterMovement : MonoBehaviour
     void Update()
     {
         HandleMovement();
-        HandMovementRotation();
-        // if(!isHandlingRotation && !movementPressed) {
-        //     isHandlingRotation = true;
-        //     Invoke("HandleTimedRotation", 2);
-        // }
+        HandleMovementRotation();
+        HandleAnimation();
     }
 
-    // void HandleTimedRotation()
-    // {
-    //     isHandlingRotation = false;
-    //    if(mouseLocation == Mouse.current.position.ReadValue()) HandleLookRotation(1f);
-    // }
-
-    void HandMovementRotation()
+    void HandleMovementRotation()
     {
         Vector3 currentPosition = transform.position;
-
         Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
-
         Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref velocity, 0.25f);
 
         transform.LookAt(positionToLookAt);
     }
+
+    // void turnAfterNoMovement() {
+    //     Vector3 newPosition = GetMouseWorldLocation();
+    //     Quaternion targetRotation = Quaternion.LookRotation(newPosition);
+
+    //     transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime*5);
+    // }
 
     Vector3 GetMouseWorldLocation()
     {
@@ -106,26 +103,32 @@ public class CharacterMovement : MonoBehaviour
         return new Vector3(transform.position.x, transform.position.y, transform.position.z + 10);
     }
 
-    void HandleLookRotation(float rotationSpeed = 0.25f)
+    void HandleLookRotation()
     {
         Vector3 pointToLookAt = GetMouseWorldLocation();
         pointToLookAt = new Vector3(pointToLookAt.x, transform.position.y, pointToLookAt.z);
-        transform.position = Vector3.SmoothDamp(transform.position, pointToLookAt, ref velocity, 0.25f);
-        // transform.LookAt(pointToLookAt);
-
-        // if (TargetObject != null && Enabled)
-        // {
-        //     Vector3 targetPosition = pointToLookAt;
-        //     transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 3f);
-        //     if (RotationSpeed > 0)
-        //     {
-        //         Quaternion targetRotation = Quaternion.LookRotation(TargetObject.position - myTransform.position);
-        //         this.transform.rotation = Quaternion.Slerp(myTransform.rotation, targetRotation, Time.deltaTime * RotationSpeed);
-        //     }
-        // }
+        transform.LookAt(pointToLookAt);
     }   
 
     void HandleMovement()
+    {
+        // Get parameter values from the animator
+        bool isRunning = animator.GetBool(isRunningHash);
+        bool isWalking = animator.GetBool(isWalkingHash);
+
+        // Movement
+        if(movementPressed)
+        {
+            Vector3 controllerInput = new Vector3(currentMovement.x, 0, currentMovement.y);
+
+            motion = controllerInput;
+            motion *= isRunning ? runSpeed : walkSpeed;
+
+            controller.Move(motion * Time.deltaTime);
+        }
+    }
+
+    void HandleAnimation() 
     {
         // Get parameter values from the animator
         bool isRunning = animator.GetBool(isRunningHash);
@@ -151,17 +154,6 @@ public class CharacterMovement : MonoBehaviour
         if((!movementPressed || !runPressed) && isRunning)
         {
             animator.SetBool(isRunningHash, false);
-        }
-
-        // Movement
-        if(movementPressed)
-        {
-            Vector3 controllerInput = new Vector3(currentMovement.x, 0, currentMovement.y);
-
-            motion = controllerInput;
-            motion *= isRunning ? runSpeed : walkSpeed;
-
-            controller.Move(motion * Time.deltaTime);
         }
     }
 
