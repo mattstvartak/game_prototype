@@ -22,19 +22,29 @@ public class CharacterMovement : MonoBehaviour
 
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
-
+    
+    private bool isHandlingRotation;
+    private Vector2 mouseLocation;
     private Vector3 motion;
     private CharacterController controller;
-    private Vector3 velocity = Vector3.zero;
+    Vector3 velocity = Vector3.zero;
 
-    void Awake() {
+    void Awake()
+    {
         input = new PlayerInput();
         controller = GetComponent<CharacterController>();
+        isHandlingRotation = false;
 
         // Walking input
         input.CharacterControls.Movement.performed += ctx => {
             currentMovement = ctx.ReadValue<Vector2>();
             movementPressed = currentMovement.x != 0 || currentMovement.y != 0;
+        };
+
+        // Look input
+        input.CharacterControls.Look.performed += ctx => {
+            mouseLocation = ctx.ReadValue<Vector2>();
+            if(!movementPressed) HandleLookRotation();
         };
 
         // Run toggle
@@ -45,7 +55,6 @@ public class CharacterMovement : MonoBehaviour
     void Start()
     {
         animator = GetComponent<Animator>();
-        // OnGUI();
 
         // set the ID references
         isWalkingHash = Animator.StringToHash("isWalking");
@@ -58,10 +67,20 @@ public class CharacterMovement : MonoBehaviour
     {
         HandleMovement();
         HandMovementRotation();
-        if(!movementPressed) HandleLookRotation();
+        // if(!isHandlingRotation && !movementPressed) {
+        //     isHandlingRotation = true;
+        //     Invoke("HandleTimedRotation", 2);
+        // }
     }
 
-    void HandMovementRotation() {
+    // void HandleTimedRotation()
+    // {
+    //     isHandlingRotation = false;
+    //    if(mouseLocation == Mouse.current.position.ReadValue()) HandleLookRotation(1f);
+    // }
+
+    void HandMovementRotation()
+    {
         Vector3 currentPosition = transform.position;
 
         Vector3 newPosition = new Vector3(currentMovement.x,0,currentMovement.y);
@@ -71,7 +90,8 @@ public class CharacterMovement : MonoBehaviour
         transform.LookAt(positionToLookAt);
     }
 
-    Vector3 GetMouseWorldLocation() {
+    Vector3 GetMouseWorldLocation()
+    {
         Vector2 mousePosition = Mouse.current.position.ReadValue();
         Ray ray = Camera.main.ScreenPointToRay(mousePosition);
         Vector3 worldPosition;
@@ -86,43 +106,56 @@ public class CharacterMovement : MonoBehaviour
         return new Vector3(transform.position.x, transform.position.y, transform.position.z + 10);
     }
 
-    void HandleLookRotation() {
+    void HandleLookRotation(float rotationSpeed = 0.25f)
+    {
         Vector3 pointToLookAt = GetMouseWorldLocation();
         pointToLookAt = new Vector3(pointToLookAt.x, transform.position.y, pointToLookAt.z);
-        pointToLookAt = Vector3.SmoothDamp(transform.position, pointToLookAt, ref velocity, 0.5f);
-        transform.LookAt(pointToLookAt);
-    }
+        transform.position = Vector3.SmoothDamp(transform.position, pointToLookAt, ref velocity, 0.25f);
+        // transform.LookAt(pointToLookAt);
 
-    void HandleMovement() {
+        // if (TargetObject != null && Enabled)
+        // {
+        //     Vector3 targetPosition = pointToLookAt;
+        //     transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 3f);
+        //     if (RotationSpeed > 0)
+        //     {
+        //         Quaternion targetRotation = Quaternion.LookRotation(TargetObject.position - myTransform.position);
+        //         this.transform.rotation = Quaternion.Slerp(myTransform.rotation, targetRotation, Time.deltaTime * RotationSpeed);
+        //     }
+        // }
+    }   
+
+    void HandleMovement()
+    {
         // Get parameter values from the animator
         bool isRunning = animator.GetBool(isRunningHash);
         bool isWalking = animator.GetBool(isWalkingHash);
 
         // Walking animation
-        if(movementPressed && !isWalking) {
-            animator.SetBool(isWalkingHash, value: true);
+        if(movementPressed && !isWalking)
+        {
+            animator.SetBool(isWalkingHash, value: true);   
         }
 
-        if(!movementPressed && isWalking) {
+        if(!movementPressed && isWalking)
+        {
             animator.SetBool(isWalkingHash, false);
         }
 
         // Running animation
-        if((movementPressed && runPressed) && !isRunning) {
+        if((movementPressed && runPressed) && !isRunning)
+        {
             animator.SetBool(isRunningHash, true);
         }
 
-        if((!movementPressed || !runPressed) && isRunning) {
+        if((!movementPressed || !runPressed) && isRunning)
+        {
             animator.SetBool(isRunningHash, false);
         }
 
-        // Jumping animation
-        if(jumpPressed) animator.SetTrigger(isJumpingHash);
-
-        if(!jumpPressed) animator.ResetTrigger(isJumpingHash);
-
         // Movement
-        if(movementPressed) {
+        if(movementPressed)
+        {
             Vector3 controllerInput = new Vector3(currentMovement.x, 0, currentMovement.y);
 
             motion = controllerInput;
@@ -132,11 +165,13 @@ public class CharacterMovement : MonoBehaviour
         }
     }
 
-    void OnEnable() {
+    void OnEnable()
+    {
         input.CharacterControls.Enable();
     }
 
-    void onDisable() {
+    void onDisable()
+    {
         input.CharacterControls.Disable();
     }
 }
