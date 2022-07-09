@@ -121,6 +121,11 @@ public class Player : MonoBehaviour
         }
     }
 
+    void HandleCameraZoom()
+    {
+        
+    }
+
     void HandleRotation()
     {
         if(_movePressed) {
