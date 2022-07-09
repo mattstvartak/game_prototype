@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
-    public GameObject CinemachineCameraTarget;
+    [Header("Player Movement")]
     public float walkSpeed = 3f;
     public float runSpeed = 5f;
     [Tooltip("Additional degress to override the camera. Useful for fine tuning camera position when locked")]
@@ -15,23 +15,38 @@ public class Player : MonoBehaviour
 
     [Tooltip("How far in degrees can you move the camera down")]
     public float BottomClamp = -30.0f;
-    
-    private int _isWalkingHash;
-    private int _isRunningHash;
-    private int _isJumpingHash;
+    [Tooltip("How fast the character turns to face movement direction")]
+    [Range(0.0f, 0.3f)]
+    public float RotationSmoothTime = 0.12f;
+    [Header("Cinemachine")]
+    [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
+    public GameObject CinemachineCameraTarget;
+
+    // Controls
     private PlayerInput _input;
-    private Vector2 mouseLocation;
-    private Vector3 motion;
-    private CharacterController _player;
-    private Vector3 _velocity = Vector3.zero;
-    private Vector2 _move;
     private bool _movePressed;
     private bool _runPressed;
     private bool _jumpPressed;
     private bool _mouseLookPressed;
-    private bool _canMoveCamera;
+
+    // Camera
     private Vector2 _mouseLookDelta;
-    Animator _animator;
+    private Vector2 mouseLocation;
+
+    // Player
+    private float _rotationVelocity;
+    private Vector3 _move;
+    private CharacterController _player;
+    private float _targetCameraRotation = 0.0f;
+    private float _targetRotation = 0.0f;
+    private Vector3 _velocity = Vector3.zero;
+    private Vector2 _inputDirection;
+
+    // Animation
+    private Animator _animator;
+    private int _isWalkingHash;
+    private int _isRunningHash;
+    private int _isJumpingHash;
 
     // cinemachine
     private float _cinemachineTargetYaw;
@@ -46,8 +61,8 @@ public class Player : MonoBehaviour
         // Walking input
         _input.Player.Move.performed += ctx => 
         {
-            _move = ctx.ReadValue<Vector2>();
-            _movePressed = _move.x != 0 || _move.y != 0;
+            _inputDirection = ctx.ReadValue<Vector2>();
+            _movePressed = _inputDirection.x != 0 || _inputDirection.y != 0;
         };
 
         // Look input
@@ -95,25 +110,28 @@ public class Player : MonoBehaviour
         // Get parameter values from the animator
         bool isRunning = _animator.GetBool(_isRunningHash);
         bool isWalking = _animator.GetBool(_isWalkingHash);
+        _targetRotation = Mathf.Atan2(_inputDirection.x, _inputDirection.y) * Mathf.Rad2Deg + Camera.main.transform.eulerAngles.y;
+        Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
-        // Movement
         if(_movePressed)
         {
-            Vector3 controllerInput = new Vector3(_move.x, 0, _move.y);
-
-            motion = controllerInput;
-            motion *= isRunning ? runSpeed : walkSpeed;
-
-            _player.Move(motion * Time.deltaTime);
+            _move = targetDirection.normalized;
+            _move *= isRunning ? runSpeed : walkSpeed;
+            _player.Move(_move * Time.deltaTime);
         }
     }
+
     void HandleRotation()
     {
-        Vector3 currentPosition = transform.position;
-        Vector3 newPosition = new Vector3(_move.x,0,_move.y);
-        Vector3 positionToLookAt = Vector3.SmoothDamp(currentPosition, currentPosition + newPosition, ref _velocity, 0.25f);
+        if(_movePressed) {
+            _targetCameraRotation = Mathf.Atan2(_inputDirection.x, _inputDirection.y) * Mathf.Rad2Deg + Camera.main.transform.eulerAngles.y;
+            float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetCameraRotation, ref _rotationVelocity,
+                RotationSmoothTime);
 
-        transform.LookAt(positionToLookAt);
+            // rotate to face input direction relative to camera position
+            transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+        }
+
     }
 
     Vector3 GetMouseWorldLocation()
@@ -152,8 +170,6 @@ public class Player : MonoBehaviour
         // clamp our rotations so our values are limited 360 degrees
         _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
         _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
-
-        Debug.Log(_mouseLookDelta.y);
 
         // Cinemachine will follow this target
         CinemachineCameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch + CameraAngleOverride, _cinemachineTargetYaw, 0.0f);
