@@ -19,14 +19,19 @@ public class Player : MonoBehaviour
     [Range(0.0f, 0.3f)]
     public float RotationSmoothTime = 0.12f;
     [Header("Cinemachine")]
+    [Tooltip("Drop the Cinemachine camera here.")]
     public Cinemachine.CinemachineVirtualCamera _vcam;
     [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
     public GameObject CinemachineCameraTarget;
-    public float CameraMinimumZoom = 20f;
-    public float CameraMaximumZoom = 120f;
+    [Tooltip("The furthest away in Z diistance that the camera will zoom")]
+    public float CameraMinimumZoom = -10f;
+    [Tooltip("The closest in Z diistance that the camera will zoom")]
+    public float CameraMaximumZoom = -1f;
+    [Tooltip("How fast the zoom will animate as speed*Time.deltaTime.")]
     public float CameraZoomSpeed = 30f;
-    [Tooltip("Controls zoom default value. A higher FOV equals less zoom.")]
-    public float CameraZoom = 60;
+    [Tooltip("Default Z distance")]
+    [Range(-10f, -1f)]
+    public float CameraZoom = -3f;
 
     // Controls
     private PlayerInput _input;
